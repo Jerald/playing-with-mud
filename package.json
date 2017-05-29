@@ -12,5 +12,13 @@
     "ws": "^3.0.0"
   },
   "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jerald/playing-with-mud.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jerald/playing-with-mud/issues"
+  },
+  "homepage": "https://github.com/Jerald/playing-with-mud#readme",
   "description": ""
 }
