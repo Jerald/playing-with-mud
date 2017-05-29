@@ -1,5 +1,12 @@
 const WebSocket = require('ws');
-const server = new WebSocket.Server({ port: 8080 });
+
+var port;
+if (process.argv[2] !== undefined) {
+	port = process.argv[2];
+} else {
+	port = 8080;
+}
+const server = new WebSocket.Server({ port: port });
 
 server.on('connection', function (socket) {
 	var userObject = {
