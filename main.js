@@ -1,3 +1,8 @@
+const Node = require('./utils/node.js');
+const CommandParser = require('./utils/CommandParser.js');
+const CommandManager = require('./utils/CommandManager.js');
+const LoginManager = require('./utils/LoginManager.js');
+
 const WebSocket = require('ws');
 
 var port;
@@ -8,57 +13,57 @@ if (process.argv[2] !== undefined) {
 }
 const server = new WebSocket.Server({ port: port });
 
+var homeNode = setupWorld();
+
 server.on('connection', function (socket) {
-	var userObject = {
-		socket: socket
+	var user = {
+		socket: socket, // Socket which the user is connected on
+		username: '',   // Username given to the user
+		node: {},       // Node where the user is currently
+		message: {}     // Last message the user sent, parsed by CommandParser
 	};
 
 	console.log('Connection made!');
 
-	socket.on('message', function (data) {
-		let parsedData = JSON.parse(data);
+	socket.on('message', function (rawPacket) {
+		let packet = JSON.parse(rawPacket);
 
-		if (parsedData.command === 'readline') {
-			if (userObject.username === undefined) {
-				console.log('User\'s username is not authenticated correctly! ERROR ERROR ERROR');
-			} else {
-				console.log('I got an input of: ' + parsedData.input);
-				parseReadLine(userObject, parsedData);
+		if (packet.command === 'login')
+		{
+			LoginManager(user, packet, homeNode);
+			console.log(`${user.username} logged in at location '${homeNode.name}'`);
+		}
+		else if (packet.command === 'readline')
+		{
+			if (user.username === undefined)
+			{
+				console.log('[ERROR] Client sending commands without authenicating!');
 			}
-		} else if (parsedData.command === 'login') {
-			userObject.username = parsedData.username;
-			console.log('User logged in with username: ' + userObject.username);
+			else
+			{
+				user.message = CommandParser.parseInput(packet.input);
+				console.log(`${user.username} sent message '${user.message._rawMessage}'`);
+				CommandManager(server, user);
+			}
+		}
+		else
+		{
+			console.log('[ERROR] Client sending weird commands!');
 		}
 	});
-
-	// let packetObj = {
-	// 	command: 'writeline',
-	// 	message: 'Hello World!'
-	// };
-	//
-	// socket.send(JSON.stringify(packetObj));
 });
 
-function parseReadLine (user, data) {
-	if (data.input.split(' ')[0] === 'say') {
-		broadcastToOthers(user, data);
-	}
-}
+function setupWorld() {
+	let connectedNodes = {
+		north: new Node('North of Center'),
+		east: new Node('East of Center'),
+		south: new Node('South of Center'),
+		west: new Node('West of Center')
+	};
 
-function broadcastToOthers (user, data) {
-	server.clients.forEach(function (client) {
-		if (client !== user.socket && client.readyState === WebSocket.OPEN) {
-			console.log(user.username);
+	let mainNode = new Node('Center of the World', connectedNodes);
 
-			let message = data.input.split(' ');
-			message.splice(0, 1);
+	mainNode.description = 'The place where every journey starts. The center of everything there is and everything there ever was.';
 
-			let packetObj = {
-				command: 'writeline',
-				message: user.username + ' says: ' + message.join(' ').trim()
-			};
-
-			client.send(JSON.stringify(packetObj));
-		}
-	});
+	return mainNode;
 }
